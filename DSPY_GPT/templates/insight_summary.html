@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow p-4">
+    <h3 class="mb-3 text-primary">
+      {{ insight.company }} ({{ insight.ticker }})
+    </h3>
+
+    <div class="mb-3">
+      <p><strong>Price:</strong> ${{ insight.price }}</p>
+      <p>
+        <strong>Change:</strong>
+        <span style="color: {% if insight.change_pct|float > 0 %}green{% elif insight.change_pct|float < 0 %}red{% else %}black{% endif %}">
+          {{ insight.change_pct }}%
+        </span>
+      </p>
+      <p><strong>P/E Ratio:</strong> {{ insight.pe_ratio }}</p>
+      <p><strong>Beta:</strong> {{ insight.beta }}</p>
+    </div>
+
+    <hr>
+
+    <h5 class="mt-4 text-secondary">DSPy Financial Summary</h5>
+    <div class="p-3 border rounded bg-light insight-content">
+      {{ insight.insight | safe }}
+    </div>
+
+    <div class="mt-4">
+      <a href="/" class="btn btn-secondary">← Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .insight-content p {
+    margin-bottom: 1em;
+    line-height: 1.6;
+  }
+  .insight-content strong {
+    font-weight: 600;
+  }
+  .insight-content h4, .insight-content h5 {
+    margin-top: 1.2em;
+    color: #004085;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger shadow" role="alert">
+        <h4 class="alert-heading">Insight Not Available</h4>
+        <p>{{ message or "No DSPy insight is available at this time." }}</p>
+        <hr>
+        <p class="mb-0">Please try analyzing a stock ticker from the <a href="/" class="alert-link">home page</a> first.</p>
+    </div>
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary">Go to Home</a>
+    </div>
+</div>
+{% endblock %}

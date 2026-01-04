@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Analysis history</h3>
+<table class="table table-sm">
+  <thead><tr><th>Time (UTC)</th><th>Ticker</th><th>Analysis (preview)</th></tr></thead>
+  <tbody>
+    {% for it in items %}
+      <tr>
+        <td>{{ it.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        <td>{{ it.ticker }}</td>
+        <td><pre style="white-space:pre-wrap; max-height:120px; overflow:auto;">{{ it.analysis[:600] }}</pre></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3">No history yet</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
