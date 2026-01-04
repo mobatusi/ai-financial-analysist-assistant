@@ -1,17 +1,16 @@
-
 {% extends "base.html" %}
 {% block content %}
 <div class="row">
   <div class="col-md-8 offset-md-2">
     <h3>Stock analysis</h3>
-    
+
     <form id="analyze-form" class="mb-3">
       <div class="input-group">
         <input type="text" id="ticker" name="ticker" class="form-control" placeholder="Ticker (e.g., AAPL)" required>
         <button id="analyze-btn" class="btn btn-primary" type="submit">Analyze</button>
       </div>
     </form>
-    
+
     <div class="mb-4">
       <h5>Popular Stocks</h5>
       <table class="table table-striped table-sm">
@@ -31,7 +30,8 @@
             <td><strong>{{ s.ticker }}</strong></td>
             <td>{{ s.company or "-" }}</td>
             <td>${{ s.price or "N/A" }}</td>
-            <td style="color: {% if s.change_pct and s.change_pct > 0 %}green{% elif s.change_pct and s.change_pct < 0 %}red{% else %}black{% endif %}">
+            <td
+              style="color: {% if s.change_pct and s.change_pct > 0 %}green{% elif s.change_pct and s.change_pct < 0 %}red{% else %}black{% endif %}">
               {{ s.change_pct or "N/A" }}%
             </td>
             <td>{{ s.pe_ratio or "N/A" }}</td>
@@ -56,79 +56,87 @@
 </div>
 
 <script>
-document.getElementById("analyze-form").addEventListener("submit", async function(e){
-  e.preventDefault();
-  const ticker = document.getElementById("ticker").value.trim().toUpperCase();
-  if (!ticker) return;
-  const payload = { ticker };
-  
-  // --- UX Improvement: Loading State ---
-  const button = document.getElementById("analyze-btn");
-  button.disabled = true;
-  button.innerText = "Analyzing...";
+  document.getElementById("analyze-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const ticker = document.getElementById("ticker").value.trim().toUpperCase();
+    if (!ticker) return;
+    const payload = { ticker };
 
-  try {
-    const resp = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const json = await resp.json();
-    
-    if (json.error) {
-      alert("Error: " + json.error);
-      return;
-    }
-    document.getElementById("analysis-area").style.display = "block";
-    document.getElementById("analysis-title").innerText = json.stock.company + " (" + json.stock.ticker + ")";
-    //document.getElementById("analysis-insight").innerText = json.insight || "No insight available.";
-    window.location.href = "/insight_summary";
-    document.getElementById("analysis-insight").innerHTML = `
-  <a href="/insight_summary" class="btn btn-primary mt-3">View Full AI Insight</a>
-`;
+    // --- UX Improvement: Loading State ---
+    const button = document.getElementById("analyze-btn");
+    button.disabled = true;
+    button.innerText = "Analyzing...";
 
-    // --- UX Improvement: Dynamic Color for Analysis Summary ---
-    const price = json.stock.price || "N/A";
-    const change = json.stock.change_pct || "N/A";
-    const pe = json.stock.pe_ratio || "N/A";
-    let changeColor = 'black';
+    try {
+      const resp = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-    // Determine color based on change percentage
-    if (change !== "N/A" && !isNaN(parseFloat(change))) {
+      // Ensure we handle non-JSON or error responses gracefully
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({ message: "Server error occurred" }));
+        alert("Error: " + (errorData.message || errorData.status || "Unknown error"));
+        return;
+      }
+
+      const json = await resp.json();
+
+      if (json.status === "error") {
+        alert("Error: " + json.message);
+        return;
+      }
+
+      // Success path
+      document.getElementById("analysis-area").style.display = "block";
+
+      const stockName = json.stock.name || "Unknown Company";
+      const stockTicker = json.stock.ticker || ticker;
+      document.getElementById("analysis-title").innerText = `${stockName} (${stockTicker})`;
+
+      // UX Improvement: Redirect to summary page after a short delay or immediately
+      window.location.href = "/insight_summary";
+
+      // (Optional) Update the current page's UI in case redirect is slow or disabled
+      const price = json.stock.price || "N/A";
+      const change = json.stock.pct_change || "N/A";
+      const pe = json.stock.pe_ratio || "N/A";
+      let changeColor = 'black';
+
+      if (change !== "N/A" && !isNaN(parseFloat(change))) {
         changeColor = (parseFloat(change) > 0) ? 'green' : (parseFloat(change) < 0) ? 'red' : 'black';
-    }
+      }
 
-    // Use innerHTML to inject the colored span
-    document.getElementById("analysis-stock").innerHTML = 
+      document.getElementById("analysis-stock").innerHTML =
         `Price: $${price}   
          Change: <span style="font-weight: bold; color:${changeColor}">${change}%</span>   
          P/E: ${pe}`;
 
+      // History Preview (if available in the response)
+      const hp = json.history_preview || [];
+      let html = "<table class='table table-sm'><thead><tr>";
+      if (hp.length > 0) {
+        Object.keys(hp[0]).forEach(k => { html += "<th>" + k + "</th>" });
+        html += "</tr></thead><tbody>";
+        hp.forEach(r => {
+          html += "<tr>";
+          Object.keys(r).forEach(k => html += "<td>" + (r[k] === null ? "" : String(r[k]).slice(0, 20)) + "</td>");
+          html += "</tr>";
+        });
+        html += "</tbody></table>";
+      } else {
+        html = "<p>Analyzing recent history...</p>";
+      }
+      document.getElementById("history-preview").innerHTML = html;
 
-    // --- History Preview Generation ---
-    const hp = json.history_preview || [];
-    let html = "<table class='table table-sm'><thead><tr>";
-    if (hp.length > 0) {
-      Object.keys(hp[0]).forEach(k => { html += "<th>" + k + "</th>" });
-      html += "</tr></thead><tbody>";
-      hp.forEach(r => {
-        html += "<tr>";
-        Object.keys(r).forEach(k => html += "<td>" + (r[k] === null ? "" : String(r[k]).slice(0,20)) + "</td>");
-        html += "</tr>";
-      });
-      html += "</tbody></table>";
-    } else {
-      html = "<p>No recent history available.</p>"
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      alert("Network Error: " + error.message + "\nCheck console for details.");
+    } finally {
+      button.disabled = false;
+      button.innerText = "Analyze";
     }
-    document.getElementById("history-preview").innerHTML = html;
-
-  } catch (error) {
-    alert("Network Error: Could not complete analysis.");
-  } finally {
-    // --- UX Improvement: Reset Button State ---
-    button.disabled = false;
-    button.innerText = "Analyze";
-  }
-});
+  });
 </script>
 {% endblock %}

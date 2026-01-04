@@ -77,18 +77,23 @@ def index():
 # ---------------------------------------------------------------------
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
+    print("--- Received Analyze Request ---")
     data = request.get_json()
     if not data or not data.get("ticker"):
         return jsonify({"status": "error", "message": "Ticker symbol is required"}), 400
     
     ticker = data.get("ticker").upper()
+    print(f"Analyzing ticker: {ticker}")
     stock_data = get_stock_data(ticker)
+    print(f"Stock data fetched: {bool(stock_data)}")
     
     if not stock_data or stock_data.get("name") == "Error":
         return jsonify({"status": "error", "message": f"No data found for ticker: {ticker}"}), 404
     
     try:
+        print("Calling dsp_financial_insight...")
         insight_text = dsp_financial_insight(ticker, stock_data)
+        print("Insight generation complete.")
         
         # Store for summary page
         session['latest_analysis'] = {
@@ -101,6 +106,9 @@ def analyze():
             'insight': insight_text
         }
         
+        # Enrich stock_data for the frontend
+        stock_data['ticker'] = ticker
+        
         return jsonify({
             "status": "ok",
             "stock": stock_data,
@@ -109,7 +117,7 @@ def analyze():
     except Exception as e:
         print(f"Analysis error: {e}")
         traceback.print_exc()
-        return jsonify({"status": "error", "message": "An error occurred during analysis"}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/insight_summary")
 def insight_summary():
@@ -305,4 +313,4 @@ def portfolio_report():
         mimetype="application/pdf"
     )
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=PORT, debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True, use_reloader=False)

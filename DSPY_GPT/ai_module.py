@@ -52,9 +52,7 @@ class FinancialInsight(dspy.Signature):
     analysis = dspy.OutputField(desc="A concise investment analysis (3-6 short paragraphs)")
 
 def dsp_financial_insight(ticker: str, stock_data: Dict) -> str:
-    """
-    Generates financial insights using DSPy or an OpenAI fallback.
-    """
+    print(f"--- ai_module: dsp_financial_insight for {ticker} ---")
     # Format the raw summary string from stock_data
     raw_summary = (
         f"Company Name: {stock_data.get('name', 'N/A')}\n"
@@ -66,6 +64,7 @@ def dsp_financial_insight(ticker: str, stock_data: Dict) -> str:
     )
 
     if USE_DSPY:
+        print("Using DSPy for insight...")
         try:
             predictor = dspy.Predict(FinancialInsight)
             result = predictor(ticker=ticker, raw_summary=raw_summary)
@@ -75,6 +74,7 @@ def dsp_financial_insight(ticker: str, stock_data: Dict) -> str:
             # Fall through to OpenAI if label-based execution fails
 
     # Fallback to OpenAI API
+    print("Using OpenAI fallback for insight...")
     if client:
         try:
             prompt = INSIGHT_PROMPT_TEMPLATE.format(ticker=ticker, raw_summary=raw_summary)

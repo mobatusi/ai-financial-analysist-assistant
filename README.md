@@ -61,9 +61,14 @@ The project development is broken down into the following key tasks:
     ```
 
 3.  **Configure environment variables**:
-    Create a `.env` file in the `DSPY_GPT` directory and add your OpenAI API key:
+    Create a `.env` file in the `DSPY_GPT` directory and add the following variables:
     ```env
     OPENAI_API_KEY=your_api_key_here
+    FLASK_ENV=development
+    FLASK_APP=app.py
+    DATABASE_URL=sqlite:///finance.db
+    SECRET_KEY=your_secret_key_here
+    PORT=5000
     ```
 
 4.  **Run the application**:
