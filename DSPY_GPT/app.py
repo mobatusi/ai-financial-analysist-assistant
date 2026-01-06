@@ -155,6 +155,19 @@ def api_analyze():
         # Generate DSPy insight
         insight = dsp_financial_insight(ticker, stock_data)
 
+        # Save to database for history
+        try:
+            history_record = AnalysisHistory(
+                ticker=ticker,
+                analysis=insight
+            )
+            db.session.add(history_record)
+            db.session.commit()
+            logging.info(f"Analysis saved to history for {ticker}")
+        except Exception as db_error:
+            logging.error(f"Failed to save analysis to history: {db_error}")
+            # Don't fail the request if history save fails
+
         # Store in session for summary page
         session["latest_insight"] = {
             "ticker": ticker,
