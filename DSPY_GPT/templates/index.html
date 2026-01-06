@@ -74,66 +74,36 @@
         body: JSON.stringify(payload)
       });
 
-      // Ensure we handle non-JSON or error responses gracefully
+      // Check if response is OK before parsing JSON
       if (!resp.ok) {
-        const errorData = await resp.json().catch(() => ({ message: "Server error occurred" }));
-        alert("Error: " + (errorData.message || errorData.status || "Unknown error"));
+        const errorText = await resp.text();
+        let errorMessage = "Server error";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.details || errorMessage;
+        } catch {
+          errorMessage = errorText || `HTTP ${resp.status}: ${resp.statusText}`;
+        }
+        alert("Analysis failed: " + errorMessage);
         return;
       }
 
       const json = await resp.json();
 
-      if (json.status === "error") {
-        alert("Error: " + json.message);
+      if (json.error) {
+        alert("Error: " + json.error);
         return;
       }
 
-      // Success path
-      document.getElementById("analysis-area").style.display = "block";
-
-      const stockName = json.stock.name || "Unknown Company";
-      const stockTicker = json.stock.ticker || ticker;
-      document.getElementById("analysis-title").innerText = `${stockName} (${stockTicker})`;
-
-      // UX Improvement: Redirect to summary page after a short delay or immediately
+      // Redirect to insight summary page on success
       window.location.href = "/insight_summary";
 
-      // (Optional) Update the current page's UI in case redirect is slow or disabled
-      const price = json.stock.price || "N/A";
-      const change = json.stock.pct_change || "N/A";
-      const pe = json.stock.pe_ratio || "N/A";
-      let changeColor = 'black';
-
-      if (change !== "N/A" && !isNaN(parseFloat(change))) {
-        changeColor = (parseFloat(change) > 0) ? 'green' : (parseFloat(change) < 0) ? 'red' : 'black';
-      }
-
-      document.getElementById("analysis-stock").innerHTML =
-        `Price: $${price}   
-         Change: <span style="font-weight: bold; color:${changeColor}">${change}%</span>   
-         P/E: ${pe}`;
-
-      // History Preview (if available in the response)
-      const hp = json.history_preview || [];
-      let html = "<table class='table table-sm'><thead><tr>";
-      if (hp.length > 0) {
-        Object.keys(hp[0]).forEach(k => { html += "<th>" + k + "</th>" });
-        html += "</tr></thead><tbody>";
-        hp.forEach(r => {
-          html += "<tr>";
-          Object.keys(r).forEach(k => html += "<td>" + (r[k] === null ? "" : String(r[k]).slice(0, 20)) + "</td>");
-          html += "</tr>";
-        });
-        html += "</tbody></table>";
-      } else {
-        html = "<p>Analyzing recent history...</p>";
-      }
-      document.getElementById("history-preview").innerHTML = html;
-
     } catch (error) {
-      console.error("Analysis failed:", error);
-      alert("Network Error: " + error.message + "\nCheck console for details.");
+      console.error("Analysis error:", error);
+      const errorMsg = error.message || "Network error or server unavailable";
+      alert("Analysis failed: " + errorMsg);
     } finally {
+      // --- UX Improvement: Reset Button State ---
       button.disabled = false;
       button.innerText = "Analyze";
     }
